@@ -9,23 +9,39 @@ warnings.filterwarnings('ignore')
 
 st.set_page_config(page_title="California House Price Predictor", layout="wide")
 
-st.title(" California House Price Predictor")
-st.markdown("**AI-powered housing price estimation using Trained Gradient Boosting Machine Learning Model**")
+st.title("🏠 California House Price Predictor")
+st.markdown("**AI-powered housing price estimation using Trained Gradient Boosting ML Model**")
 
 # ============ LOAD MODEL ============
 @st.cache_resource
 def load_model():
-    """Try loading model with joblib first, then pickle"""
+    """Load model with multiple fallbacks"""
+    errors = []
+    
+    # Try joblib first
     try:
         model = joblib.load('gb_model_joblib.pkl')
-        return model, " Model loaded with joblib"
-    except Exception as e1:
-        try:
-            with open('gb_model_pickle.pkl', 'rb') as f:
-                model = pickle.load(f)
-            return model, "Model loaded with pickle"
-        except Exception as e2:
-            return None, f" Failed to load model: {str(e2)}"
+        return model, "✅ Loaded with joblib"
+    except Exception as e:
+        errors.append(f"joblib: {str(e)[:50]}")
+    
+    # Try pickle as fallback
+    try:
+        with open('gb_model_pickle.pkl', 'rb') as f:
+            model = pickle.load(f)
+        return model, "✅ Loaded with pickle"
+    except Exception as e:
+        errors.append(f"pickle: {str(e)[:50]}")
+    
+    # Try just gb_model.pkl
+    try:
+        with open('gb_model.pkl', 'rb') as f:
+            model = pickle.load(f)
+        return model, "✅ Loaded gb_model.pkl"
+    except Exception as e:
+        errors.append(f"gb_model.pkl: {str(e)[:50]}")
+    
+    return None, f"❌ All methods failed"
 
 gb_model, model_status = load_model()
 
@@ -43,7 +59,7 @@ with col1:
     )
 
 with col2:
-    st.subheader(" House Details")
+    st.subheader("🏠 House Details")
     housing_median_age = st.number_input("House Age (years)", value=41, min_value=0, max_value=100, step=1)
     total_rooms = st.number_input("Total Rooms", value=2600, min_value=0, step=1)
     total_bedrooms = st.number_input("Total Bedrooms", value=440, min_value=0, step=1)
@@ -115,10 +131,10 @@ if predict_button:
             
             # Big price display
             st.markdown(f"""
-            <div style="text-align: center; padding: 20px; background-color: #1f77b4; border-radius: 10px;">
-                <h2 style="color: white; margin: 0;"> Estimated House Price</h2>
-                <h1 style="color: #00ff00; margin: 10px 0; font-size: 60px;">${predicted_price:,.2f}</h1>
-                <p style="color: white; margin: 0;">Based on your inputs</p>
+            <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; margin: 20px 0;">
+                <h2 style="color: white; margin: 0; font-size: 24px;">💰 Estimated House Price</h2>
+                <h1 style="color: #00ff00; margin: 15px 0; font-size: 56px; font-weight: bold;">${predicted_price:,.2f}</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">Based on your input values</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -148,44 +164,36 @@ if predict_button:
                 - Test R² Score: 0.571
                 - Test RMSE: $73,481
                 - Test MAE: $53,322
-                - Dataset: California Housing
+                - Dataset: California Housing (1990)
                 """)
 
         except Exception as e:
-            st.error(f" Error making prediction: {str(e)}")
-            st.info("This usually means there's a compatibility issue with the model file.")
+            st.error(f"❌ Prediction Error: {str(e)}")
 
     else:
-        st.error("Model Could Not Load")
+        st.error("❌ Model Could Not Load")
         st.warning(model_status)
-        st.info("""
-        **Troubleshooting:**
-        - Make sure both model files are in the repository
-        - Try re-saving the model in Colab
-        """)
 
 else:
-    # Show this before button is clicked
+    # Show before button is clicked
     st.info("""
-    ** Click the "PREDICT PRICE" button above to get your house price estimate!**
+    **👆 Click the "PREDICT PRICE" button to reveal your house price estimate!**
     
-    Adjust the input values on the left side, then click the button to reveal the predicted price.
+    1. Adjust the input values on the left
+    2. Click the button
+    3. See the predicted price!
     """)
 
 st.markdown("---")
 
 st.markdown("""
-###  About This Application
+### 📚 About This Application
 - **Dataset:** California Housing Dataset (1990 Census)
 - **Training Samples:** 16,512 houses
-- **Features:** 9 (Location, House details, Demographics)
+- **Features:** 9 inputs
 - **Algorithm:** Gradient Boosting Regressor
-- **Accuracy:** R² = 0.571 (explains 57.1% of price variance)
-- **Prediction Unit:** Median house value in hundreds of thousands
+- **Model Accuracy:** R² = 0.571 (explains 57.1% of price variance)
 
-**How to Use:**
-1. Enter the house details using the input fields on the left
-2. Click the **"PREDICT PRICE"** button
-3. See the estimated price revealed!
-4. Adjust inputs and click again for a new prediction
+Made with ❤️ using Streamlit & Scikit-learn
+""")
 """)
