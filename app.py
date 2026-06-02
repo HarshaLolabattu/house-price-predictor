@@ -12,40 +12,33 @@ st.set_page_config(page_title="California House Price Predictor", layout="wide")
 st.title("🏠 California House Price Predictor")
 st.markdown("**AI-powered housing price estimation using Trained Gradient Boosting ML Model**")
 
-# ============ LOAD MODEL ============
 @st.cache_resource
 def load_model():
     """Load model with multiple fallbacks"""
-    errors = []
-    
-    # Try joblib first
     try:
         model = joblib.load('gb_model_joblib.pkl')
         return model, "✅ Loaded with joblib"
     except Exception as e:
-        errors.append(f"joblib: {str(e)[:50]}")
+        pass
     
-    # Try pickle as fallback
     try:
         with open('gb_model_pickle.pkl', 'rb') as f:
             model = pickle.load(f)
         return model, "✅ Loaded with pickle"
     except Exception as e:
-        errors.append(f"pickle: {str(e)[:50]}")
+        pass
     
-    # Try just gb_model.pkl
     try:
         with open('gb_model.pkl', 'rb') as f:
             model = pickle.load(f)
         return model, "✅ Loaded gb_model.pkl"
     except Exception as e:
-        errors.append(f"gb_model.pkl: {str(e)[:50]}")
+        pass
     
-    return None, f"❌ All methods failed"
+    return None, "❌ Could not load model"
 
 gb_model, model_status = load_model()
 
-# ============ INPUT SECTION ============
 col1, col2 = st.columns([1, 1])
 
 with col1:
@@ -73,20 +66,13 @@ with col4:
 
 st.markdown("---")
 
-# ============ BUTTON & PREDICTION ============
 col_button = st.columns([1, 1, 1])
 with col_button[1]:
-    predict_button = st.button(
-        "🎯 PREDICT PRICE", 
-        key="predict_btn",
-        use_container_width=True
-    )
+    predict_button = st.button("🎯 PREDICT PRICE", key="predict_btn", use_container_width=True)
 
-# Show prediction only when button is clicked
 if predict_button:
     if gb_model is not None:
         try:
-            # Prepare input data
             input_data = pd.DataFrame({
                 'longitude': [longitude],
                 'latitude': [latitude],
@@ -99,10 +85,8 @@ if predict_button:
                 'ocean_proximity': [ocean_proximity]
             })
             
-            # One-hot encode ocean_proximity
             input_processed = pd.get_dummies(input_data, columns=['ocean_proximity'], drop_first=True)
             
-            # Ensure all expected columns exist
             expected_cols = [
                 'longitude', 'latitude', 'housing_median_age', 'total_rooms', 
                 'total_bedrooms', 'population', 'households', 'median_income',
@@ -116,20 +100,13 @@ if predict_button:
             
             input_processed = input_processed[expected_cols]
             
-            # Impute missing values
             imputer = SimpleImputer(strategy='median')
-            input_imputed = pd.DataFrame(
-                imputer.fit_transform(input_processed), 
-                columns=expected_cols
-            )
+            input_imputed = pd.DataFrame(imputer.fit_transform(input_processed), columns=expected_cols)
             
-            # Make prediction
             predicted_price = gb_model.predict(input_imputed)[0]
             
-            # ============ DISPLAY RESULTS ============
             st.markdown("---")
             
-            # Big price display
             st.markdown(f"""
             <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; margin: 20px 0;">
                 <h2 style="color: white; margin: 0; font-size: 24px;">💰 Estimated House Price</h2>
@@ -140,60 +117,23 @@ if predict_button:
             
             st.markdown("---")
             
-            # Details
             col5, col6 = st.columns([1, 1])
             
             with col5:
-                st.info(f"""
-                **📊 Your Input Summary:**
-                - Location: ({latitude:.2f}, {longitude:.2f})
-                - Ocean Proximity: {ocean_proximity}
-                - House Age: {housing_median_age} years
-                - Total Rooms: {total_rooms}
-                - Total Bedrooms: {total_bedrooms}
-                - Population: {population}
-                - Households: {households}
-                - Median Income: ${median_income*10000:,.0f}
-                """)
+                st.info(f"**📊 Input Summary:**\n\n- Location: ({latitude:.2f}, {longitude:.2f})\n- Ocean: {ocean_proximity}\n- Age: {housing_median_age} yrs\n- Rooms: {total_rooms}\n- Bedrooms: {total_bedrooms}\n- Population: {population}\n- Households: {households}\n- Income: ${median_income*10000:,.0f}")
             
             with col6:
-                st.success(f"""
-                **🤖 Model Performance:**
-                - Algorithm: Gradient Boosting Regressor
-                - Features: 9
-                - Test R² Score: 0.571
-                - Test RMSE: $73,481
-                - Test MAE: $53,322
-                - Dataset: California Housing (1990)
-                """)
+                st.success(f"**🤖 Model Info:**\n\n- Algorithm: Gradient Boosting\n- R² Score: 0.571\n- RMSE: $73,481\n- MAE: $53,322\n- Features: 9")
 
         except Exception as e:
-            st.error(f"❌ Prediction Error: {str(e)}")
+            st.error(f"❌ Error: {str(e)}")
 
     else:
         st.error("❌ Model Could Not Load")
         st.warning(model_status)
 
 else:
-    # Show before button is clicked
-    st.info("""
-    **👆 Click the "PREDICT PRICE" button to reveal your house price estimate!**
-    
-    1. Adjust the input values on the left
-    2. Click the button
-    3. See the predicted price!
-    """)
+    st.info("👆 Click PREDICT PRICE to reveal your house price estimate!")
 
 st.markdown("---")
-
-st.markdown("""
-### 📚 About This Application
-- **Dataset:** California Housing Dataset (1990 Census)
-- **Training Samples:** 16,512 houses
-- **Features:** 9 inputs
-- **Algorithm:** Gradient Boosting Regressor
-- **Model Accuracy:** R² = 0.571 (explains 57.1% of price variance)
-
-Made with ❤️ using Streamlit & Scikit-learn
-""")
-""")
+st.markdown("Made with ❤️ using Streamlit & Scikit-learn")
